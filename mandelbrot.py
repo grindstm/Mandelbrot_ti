@@ -75,14 +75,14 @@ exponent[0]=2.
 max_iters = ti.field(int, shape=1)
 max_iters[0]=100
 limit = ti.field(float, shape=1)
-limit[0] = 2.
+limit[0] = 4.
 
 highest_iters=0
 
 @ti.func
 def mandelbrot(i, j):
+    # Z=c=vec2(i,j)
     Z=c=coord(i,j)
-    # Z=c=coord(i,j)
     # Z=c=pan_zoom(coord(i,j))
     # print(c)
     out=0
@@ -95,7 +95,7 @@ def mandelbrot(i, j):
     # count=0
     for n in range(max_iters[0]):
         # count+=1
-        Z=Z*tm.cpow(Z,exponent[0])+c   
+        Z=tm.cpow(Z,exponent[0])+c   
         if tm.length(Z)>limit[0]:
             # r=n/max_iters[0]
             out=n
@@ -115,14 +115,14 @@ def paint_with_mouse(i,j,cur, lmb, size):
 
 @ti.kernel 
 def nxt_frame(nxt: ti.template(), cur:ti.template(), lmb: bool, rmb: bool):
-    max_previous=0
-    for i, j in im:
-        l=tm.length(nxt[i,j])
-        if l>max_previous:
-            max_previous=l
+    # max_previous=0
+    # for i, j in im:
+    #     l=tm.length(nxt[i,j])
+    #     if l>max_previous:
+    #         max_previous=l
 
     for i, j in im:
-        nxt[i,j]=vec3(float(mandelbrot(i,j)/max_previous))
+        nxt[i,j]=vec3(mandelbrot(i,j))
         
                 # nxt[i,j] = vec3(0.5,0.5,0.5)
 
