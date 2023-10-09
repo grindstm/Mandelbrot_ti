@@ -72,7 +72,7 @@ def pan_zoom(c):
 
 exponent = ti.field(float, shape=1)
 exponent[0]=2.
-max_iters = ti.field(float, shape=1)
+max_iters = ti.field(int, shape=1)
 max_iters[0]=100
 limit = ti.field(float, shape=1)
 limit[0] = 2.
@@ -80,25 +80,28 @@ limit[0] = 2.
 highest_iters=0
 
 @ti.func
-def mandelbrot(i, j, nxt: ti.template()):
-    Zp=c=pan_zoom(coord(i,j))
+def mandelbrot(i, j):
+    Z=c=coord(i,j)
+    # Z=c=coord(i,j)
+    # Z=c=pan_zoom(coord(i,j))
     # print(c)
+    out=0
+    # if tm.length(Z)>limit[0]:
+    #     out=0
+    #     nxt[i,j]=vec3(0.5,0.65,0.5)
 
-    if tm.length(Zp)>limit[0]:
-        nxt[i,j]=vec3(0.5,0.65,0.5)
+    # else:
+    # print('in')
+    # count=0
+    for n in range(max_iters[0]):
+        # count+=1
+        Z=Z*tm.cpow(Z,exponent[0])+c   
+        if tm.length(Z)>limit[0]:
+            # r=n/max_iters[0]
+            out=n
+    # out=max_iters[0]
 
-    else:
-        # count=0
-        for n in range(max_iters[0]):
-            # count+=1
-            Zn=tm.cpow(Zp,exponent[0])+c   
-            if tm.length(Zn)>limit[0]:
-                r=n/max_iters[0]
-                nxt[i,j]=vec3(n) #nxt[i,j]=rgb2hsl(vec3(r))
-                break
-            nxt[i,j]=vec3(n/max_iters[0])
-            Zp=Zn
-
+    return out
         # if count > highest_iters:
         #     highest_iters=count
         #     print(highest_iters)
@@ -111,10 +114,16 @@ def paint_with_mouse(i,j,cur, lmb, size):
     return cur[i,j]+vec3(0.,0.,lmb*tm.smoothstep(.8,0.0,distance/size))
 
 @ti.kernel 
-def nxt_frame(nxt: ti.template(),lmb: bool, rmb: bool):
+def nxt_frame(nxt: ti.template(), cur:ti.template(), lmb: bool, rmb: bool):
+    max_previous=0
     for i, j in im:
-        nxt[i,j]=vec3(0.)
-        mandelbrot(i,j, nxt)
+        l=tm.length(nxt[i,j])
+        if l>max_previous:
+            max_previous=l
+
+    for i, j in im:
+        nxt[i,j]=vec3(float(mandelbrot(i,j)/max_previous))
+        
                 # nxt[i,j] = vec3(0.5,0.5,0.5)
 
 # def options(window):
@@ -147,7 +156,7 @@ def main():
 
 
         with gui.sub_window("_",x=0.,y=0.,width=1.,height=.15):
-            max_iters[0]=gui.slider_float("max_iters ", max_iters[0],0.,1000.)
+            max_iters[0]=gui.slider_int("max_iters ", max_iters[0],0,1000)
             limit[0]=gui.slider_float("limit",limit[0],0.,10.)
             exponent[0]=gui.slider_float("exp", exponent[0],0.,20.)
         start=vec2(0.)
@@ -174,7 +183,7 @@ def main():
         t[0]=perf_counter()
 
         if not paused:
-            nxt_frame(ims.nxt, window.is_pressed(ti.ui.LMB),window.is_pressed(ti.ui.RMB))
+            nxt_frame(ims.nxt, ims.cur, window.is_pressed(ti.ui.LMB),window.is_pressed(ti.ui.RMB))
             ims.swap()
             canvas.set_image(ims.cur)
 
