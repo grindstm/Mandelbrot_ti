@@ -6,6 +6,7 @@
 import taichi as ti
 import taichi.math as tm
 from time import perf_counter
+import numpy as np
 
 ti.init(arch=ti.gpu, default_ip=ti.i32, default_fp=ti.f32)
 
@@ -29,7 +30,7 @@ im = ti.Vector.field(3, float, shape=res)
 im_ = ti.Vector.field(3, float, shape=res)
 ims = Pair(im, im_)
 
-mouse = ti.Vector.field(2, float, shape=1)
+mouse = ti.Vector.field(2, float, shape=3)
 t = ti.field(float, shape=1)
 
 
@@ -56,16 +57,16 @@ zoom_delta[0]=1.2
 zoom[0]=1.
 pan=ti.Vector.field(2, float, shape=1)
 pan[0]=vec2(0.)
-click = ti.Vector.field(2, float, shape =1)
-clicked=ti.field(int, shape=1)
-clicked[0]=0
+# click = ti.Vector.field(2, float, shape =1)
+# clicked=ti.field(int, shape=1)
+# clicked[0]=0
 S=ti.Matrix.field(2,2,float,shape=1)
 S[0]=mat2((1.,0.),(0.,1.))
 
 @ti.func
 def coord(i,j):
-    # c=vec2(i,j)
-    # S[0]@(c-click[0])+click[0]
+    c=vec2(i,j)
+    S[0]@(c-click[0])+click[0]
     return S[0]@vec2(2*i/res[0]-1.5,1-(2*j/res[1]))
 
 @ti.func
@@ -154,32 +155,35 @@ def main():
 
     while window.running:
 
-        cursor_pos = window.get_cursor_pos()
-        mouse[0].x = cursor_pos[0]
-        mouse[0].y = cursor_pos[1]
+        # cursor_pos = window.get_cursor_pos()
+        # mouse[0].x = cursor_pos[0]
+        # mouse[0].y = cursor_pos[1]
 
 
         with gui.sub_window("_",x=0.,y=0.,width=1.,height=.15):
             max_iters[0]=gui.slider_int("max_iters ", max_iters[0],0,1000)
             limit[0]=gui.slider_float("limit",limit[0],0.,10.)
             exponent[0]=gui.slider_float("exp", exponent[0],0.,20.)
-        start=vec2(0.)
+
+        mouse[0]=window.get_cursor_pos()
         if window.get_event(ti.ui.PRESS):
-            start=mouse[0]
-            print("press start", start)
+            print("press ", mouse[0])
+            mouse[1]=window.get_cursor_pos()
+            mouse_drag=mouse[1]-mouse[0]
+            pan[0]+=mouse_drag
+        
         if window.get_event(ti.ui.RELEASE):
-            # print("start",start)
-            print("mouse",mouse[0])
-            # if start!=mouse[0]:
-            #     pan[0]=mouse[0]-start
-            #     print("pan",pan)
-            # else:
-            click[0] = mouse[0]
-            # clicked[0]=1
-            zoom[0]=zoom[0]*zoom_delta[0]
-            print('zoom',zoom[0])
+            mouse[2]=window.get_cursor_pos()
+            print("release ",mouse[1])
+            mouse_drag=mouse[2]-mouse[0]
+            if np.linalg.norm(mouse_drag)<0.01:
+                print('drag',np.linalg.norm(mouse_drag))
+                print('dif ',mouse[0]-mouse[1])
+                zoom[0]=zoom[0]*zoom_delta[0]
             S[0]=mat2((1/zoom[0],0),(0,1/zoom[0]))
-            # print(click[0])
+            
+            
+            
             e = window.event
             if e.key == ti.ui.ESCAPE:
                 break
@@ -193,12 +197,13 @@ def main():
             nxt_frame(ims.nxt, ims.cur, window.is_pressed(ti.ui.LMB),window.is_pressed(ti.ui.RMB))
             ims.swap()
             canvas.set_image(ims.cur)
-
             window.show()
-        if clicked[0]:
-            print("clicked")
-            zoom[0]+=zoom_delta[0]
-            clicked[0]=0
+
+            
+        # if clicked[0]:
+        #     print("clicked")
+        #     zoom[0]+=zoom_delta[0]
+        #     clicked[0]=0
 
 
 if __name__=="__main__":
