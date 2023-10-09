@@ -58,16 +58,15 @@ zoom[0]=1.
 pan=ti.Vector.field(2, float, shape=1)
 pan[0]=vec2(0.)
 # click = ti.Vector.field(2, float, shape =1)
-# clicked=ti.field(int, shape=1)
-# clicked[0]=0
+pressed=ti.field(int, shape=1)
+pressed[0]=0
 S=ti.Matrix.field(2,2,float,shape=1)
 S[0]=mat2((1.,0.),(0.,1.))
 
 @ti.func
 def coord(i,j):
-    c=vec2(i,j)
-    S[0]@(c-click[0])+click[0]
-    return S[0]@vec2(2*i/res[0]-1.5,1-(2*j/res[1]))
+    c=vec2(2*i/res[0]-1.5,1-(2*j/res[1]))
+    return S[0]@(c-pan[0])+pan[0]
 
 @ti.func
 def pan_zoom(c):
@@ -165,22 +164,43 @@ def main():
             limit[0]=gui.slider_float("limit",limit[0],0.,10.)
             exponent[0]=gui.slider_float("exp", exponent[0],0.,20.)
 
-        mouse[0]=window.get_cursor_pos()
         if window.get_event(ti.ui.PRESS):
+            # record positions
+            mouse[0]=window.get_cursor_pos()
+            pressed[0]=1
             print("press ", mouse[0])
-            mouse[1]=window.get_cursor_pos()
-            mouse_drag=mouse[1]-mouse[0]
-            pan[0]+=mouse_drag
-        
+            
         if window.get_event(ti.ui.RELEASE):
-            mouse[2]=window.get_cursor_pos()
-            print("release ",mouse[1])
-            mouse_drag=mouse[2]-mouse[0]
-            if np.linalg.norm(mouse_drag)<0.01:
-                print('drag',np.linalg.norm(mouse_drag))
-                print('dif ',mouse[0]-mouse[1])
+            pressed[0]=0
+            mouse[1]=window.get_cursor_pos()
+            # if released and not moved, zoom
+            if np.linalg.norm(mouse[1]-mouse[0])<0.01:
                 zoom[0]=zoom[0]*zoom_delta[0]
-            S[0]=mat2((1/zoom[0],0),(0,1/zoom[0]))
+                S[0]=mat2((1/zoom[0],0),(0,1/zoom[0]))
+                print("release ", mouse[1])
+                pressed[0]=0
+
+        # print(window.get_event(ti.ui.PRESS))
+        if pressed[0]==1 and not window.get_event(ti.ui.RELEASE):
+            # pan
+            mouse[1]=window.get_cursor_pos()
+            pan[0]=mouse[0]-mouse[1]
+            print("hold ", mouse[1])
+            
+        
+            
+
+
+
+
+
+
+
+            # mouse[2]=window.get_cursor_pos()
+            # print("release ",mouse[1])
+            # mouse_drag=mouse[2]-mouse[0]
+            #     print('drag',np.linalg.norm(mouse_drag))
+            #     print('dif ',mouse[0]-mouse[1])
             
             
             
