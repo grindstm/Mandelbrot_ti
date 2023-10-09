@@ -53,22 +53,26 @@ def init():
 zoom=ti.field(float,shape=1)
 zoom_delta=ti.field(float,shape=1)
 zoom_delta[0]=1.2
-zoom[0]=0.
+zoom[0]=1.
 pan=ti.Vector.field(2, float, shape=1)
 pan[0]=vec2(0.)
 click = ti.Vector.field(2, float, shape =1)
 clicked=ti.field(int, shape=1)
 clicked[0]=0
+S=ti.Matrix.field(2,2,float,shape=1)
+S[0]=mat2((1.,0.),(0.,1.))
 
 @ti.func
 def coord(i,j):
-    return vec2(2*i/res[0]-1,1-(2*j/res[1]))
+    # c=vec2(i,j)
+    # S[0]@(c-click[0])+click[0]
+    return S[0]@vec2(2*i/res[0]-1.5,1-(2*j/res[1]))
 
 @ti.func
 def pan_zoom(c):
-    c+=pan[0]
-    S=mat2((1/zoom[0],0),(0,1/zoom[0]))
-    return S@(c-click[0])+click[0]
+    # c+=pan[0]
+    S[0]=mat2((1/zoom[0],0),(0,1/zoom[0]))
+    # return S@(c-click[0])+click[0]
 
 exponent = ti.field(float, shape=1)
 exponent[0]=2.
@@ -161,18 +165,21 @@ def main():
             exponent[0]=gui.slider_float("exp", exponent[0],0.,20.)
         start=vec2(0.)
         if window.get_event(ti.ui.PRESS):
-            start=mouse[0].x
+            start=mouse[0]
             print("press start", start)
         if window.get_event(ti.ui.RELEASE):
-            print("start",start)
+            # print("start",start)
             print("mouse",mouse[0])
-            if start!=mouse[0]:
-                pan[0]=mouse[0]-start
-                print("pan",pan)
-            else:
-                click[0] = mouse[0]
-                clicked[0]=1
-                print(click[0])
+            # if start!=mouse[0]:
+            #     pan[0]=mouse[0]-start
+            #     print("pan",pan)
+            # else:
+            click[0] = mouse[0]
+            # clicked[0]=1
+            zoom[0]=zoom[0]*zoom_delta[0]
+            print('zoom',zoom[0])
+            S[0]=mat2((1/zoom[0],0),(0,1/zoom[0]))
+            # print(click[0])
             e = window.event
             if e.key == ti.ui.ESCAPE:
                 break
